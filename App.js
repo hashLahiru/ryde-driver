@@ -34,43 +34,54 @@ import TicketingScreen from './screens/TicketingScreen';
 const Stack = createStackNavigator();
 
 export default function App() {
-  return (
-    <NavigationContainer>
-      <Stack.Navigator
-        initialRouteName="Splash" // Define the starting screen
-        screenOptions={{
-          headerShown: false, // Globally hide headers for all screens
-        }}
-      >
-        {/* Splash and Onboarding Screens */}
-        <Stack.Screen name="Splash" component={SplashScreen} />
-        <Stack.Screen name="Onboarding1" component={OnboardingScreen1} />
-        <Stack.Screen name="Onboarding2" component={OnboardingScreen2} />
+ return (
+  <NavigationContainer>
+   <Stack.Navigator
+    initialRouteName="Splash" // Define the starting screen
+    screenOptions={{
+     headerShown: false, // Globally hide headers for all screens
+    }}
+   >
+    {/* Splash and Onboarding Screens */}
+    <Stack.Screen name="Splash" component={SplashScreen} />
+    <Stack.Screen name="Onboarding1" component={OnboardingScreen1} />
+    <Stack.Screen name="Onboarding2" component={OnboardingScreen2} />
 
-        {/* Authentication Screens */}
-        <Stack.Screen name="SignIn" component={SignInScreen} />
-        <Stack.Screen name="VerifyMobile" component={VerifyMobileScreen} />
-        <Stack.Screen name="Register" component={RegisterScreen} />
+    {/* Authentication Screens */}
+    <Stack.Screen name="SignIn" component={SignInScreen} />
+    <Stack.Screen name="VerifyMobile" component={VerifyMobileScreen} />
+    <Stack.Screen name="Register" component={RegisterScreen} />
 
-        {/* Main App Screens */}
-        <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="UploadScreen" component={DriverDetailsScreen}/>
-        <Stack.Screen name="MapScreen" component={MapScreen} />
+    {/* Main App Screens */}
+    <Stack.Screen name="Home" component={HomeScreen} />
+    <Stack.Screen name="UploadScreen" component={DriverDetailsScreen} />
+    <Stack.Screen name="MapScreen" component={MapScreen} />
 
-        {/* Side Menu Screens */}
-        <Stack.Screen name="UserScreen" component={UserScreen} />
-        <Stack.Screen name="NotificationsScreen" component={NotificationsScreen} />
-        <Stack.Screen name="PaymentsScreen" component={PaymentsScreen} />
-        <Stack.Screen name="HistoryScreen" component={HistoryScreen} />
-        <Stack.Screen name="SupportScreen" component={SupportScreen} />
-        <Stack.Screen name="DriverScreen" component={DriverScreen} />
-        <Stack.Screen name="PersonalDetailsScreen" component={PersonalDetailsScreen} />
-        <Stack.Screen name="LicenseDocumentsScreen" component={LicenseDocumentsScreen} />
-        <Stack.Screen name="VehicleDetailsScreen" component={VehicleDetailsScreen} />
-        <Stack.Screen name="SingleTripViewScreen" component={SingleTripViewScreen} />
-        <Stack.Screen name="TicketingScreen" component={TicketingScreen} />
-        
-      </Stack.Navigator>
-    </NavigationContainer>
-  );
+    {/* Side Menu Screens */}
+    <Stack.Screen name="UserScreen" component={UserScreen} />
+    <Stack.Screen name="NotificationsScreen" component={NotificationsScreen} />
+    <Stack.Screen name="PaymentsScreen" component={PaymentsScreen} />
+    <Stack.Screen name="HistoryScreen" component={HistoryScreen} />
+    <Stack.Screen name="SupportScreen" component={SupportScreen} />
+    <Stack.Screen name="DriverScreen" component={DriverScreen} />
+    <Stack.Screen
+     name="PersonalDetailsScreen"
+     component={PersonalDetailsScreen}
+    />
+    <Stack.Screen
+     name="LicenseDocumentsScreen"
+     component={LicenseDocumentsScreen}
+    />
+    <Stack.Screen
+     name="VehicleDetailsScreen"
+     component={VehicleDetailsScreen}
+    />
+    <Stack.Screen
+     name="SingleTripViewScreen"
+     component={SingleTripViewScreen}
+    />
+    <Stack.Screen name="TicketingScreen" component={TicketingScreen} />
+   </Stack.Navigator>
+  </NavigationContainer>
+ );
 }
