@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
  View,
  Text,
@@ -10,38 +10,30 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function VerifyMobileScreen({ navigation }) {
- const [code, setCode] = useState(['', '', '', '']); // Store individual code digits
- const [modalVisible, setModalVisible] = useState(false); // State for modal visibility
- const [modalMessage, setModalMessage] = useState(''); // State for modal message
- const inputRefs = useRef([]);
+export default function LoginOtpScreen({ navigation }) {
+ const [code, setCode] = useState(['', '', '', '']); // Updated for 4-digit OTP
+ const [modalVisible, setModalVisible] = useState(false);
+ const [modalMessage, setModalMessage] = useState('');
 
  const handleChange = (text, index) => {
-  if (!/^\d?$/.test(text)) return; // Allow only numbers
-
   const newCode = [...code];
   newCode[index] = text;
   setCode(newCode);
-
-  // Move focus to the next input field
-  if (text && index < 3) {
-   inputRefs.current[index + 1]?.focus();
-  }
  };
 
  const handleSubmit = async () => {
   const verificationCode = code.join('');
-  console.log(verificationCode);
+  console.log('Verification Code:', verificationCode);
 
-  const token = await AsyncStorage.getItem('login_token');
-  console.log('login token', token);
+  const mobile = await AsyncStorage.getItem('phoneNumber');
+  console.log('Phone Number:', mobile);
 
-  if (token) {
+  if (mobile) {
    try {
     const requestBody = {
-     function: 'VerifyOtpDriver', // Updated function name
+     function: 'VerifyLoginOtp',
      data: {
-      token: token,
+      mobile: mobile,
       otp: verificationCode,
      },
     };
@@ -62,9 +54,10 @@ export default function VerifyMobileScreen({ navigation }) {
     }
 
     const result = await response.json();
+    console.log('Response from API:', result);
 
     if (result.status === 'success') {
-     setModalMessage('OTP verified successfully. Your account is now active.');
+     setModalMessage('You have successfully verified your phone number!');
      setModalVisible(true);
     } else {
      setModalMessage('OTP is incorrect. Please try again.');
@@ -75,17 +68,15 @@ export default function VerifyMobileScreen({ navigation }) {
     setModalVisible(true);
    }
   } else {
-   setModalMessage('Token not found. Please login again.');
+   setModalMessage('Token or mobile number not found. Please login again.');
    setModalVisible(true);
   }
  };
 
  const handleModalClose = () => {
   setModalVisible(false);
-  if (
-   modalMessage === 'OTP verified successfully. Your account is now active.'
-  ) {
-   navigation.navigate('Home'); // Navigate to Home on success
+  if (modalMessage === 'You have successfully verified your phone number!') {
+   navigation.navigate('Home');
   }
  };
 
@@ -100,18 +91,15 @@ export default function VerifyMobileScreen({ navigation }) {
 
    <View style={styles.inputContainer}>
     <Text style={styles.label}>Enter Verification Code</Text>
-
     <View style={styles.codeInputContainer}>
      {code.map((digit, index) => (
       <TextInput
        key={index}
-       ref={(ref) => (inputRefs.current[index] = ref)}
        style={styles.input}
        value={digit}
        onChangeText={(text) => handleChange(text, index)}
        keyboardType="numeric"
        maxLength={1}
-       returnKeyType="next"
       />
      ))}
     </View>
@@ -136,7 +124,11 @@ export default function VerifyMobileScreen({ navigation }) {
    >
     <View style={styles.modalContainer}>
      <View style={styles.modalContent}>
-      <Text style={styles.modalTitle}>Verification</Text>
+      <Text style={styles.modalTitle}>
+       {modalMessage.includes('successfully')
+        ? 'Login Successful'
+        : 'Verification Failed'}
+      </Text>
       <Text style={styles.modalMessage}>{modalMessage}</Text>
       <TouchableOpacity style={styles.modalButton} onPress={handleModalClose}>
        <Text style={styles.modalButtonText}>OK</Text>
@@ -149,43 +141,23 @@ export default function VerifyMobileScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
- container: {
-  flex: 1,
-  backgroundColor: '#f5f5f5',
- },
+ container: { flex: 1, backgroundColor: '#f5f5f5' },
  header: {
-  backgroundColor: '#FFC107',
+  backgroundColor: '#ff9600',
   borderBottomRightRadius: 40,
   padding: 25,
   paddingTop: 60,
   height: 180,
  },
- title: {
-  color: '#fff',
-  fontSize: 28,
-  fontWeight: 'bold',
- },
- subtitle: {
-  color: '#fff',
-  fontSize: 16,
-  marginTop: 15,
-  lineHeight: 22,
- },
- inputContainer: {
-  flex: 1,
-  padding: 20,
-  alignItems: 'center',
- },
- label: {
-  fontSize: 18,
-  fontWeight: '600',
-  color: '#333',
-  marginBottom: 12,
- },
+ title: { color: '#fff', fontSize: 28, fontWeight: 'bold' },
+ subtitle: { color: '#fff', fontSize: 16, marginTop: 15, lineHeight: 22 },
+ inputContainer: { flex: 1, padding: 20, alignItems: 'center' },
+ label: { fontSize: 18, fontWeight: '600', color: '#333', marginBottom: 12 },
  codeInputContainer: {
   flexDirection: 'row',
   justifyContent: 'space-between',
-  width: '80%',
+  alignItems: 'center',
+  width: '60%',
   marginBottom: 30,
  },
  input: {
@@ -200,7 +172,7 @@ const styles = StyleSheet.create({
   borderRadius: 8,
  },
  nextButton: {
-  backgroundColor: '#FFC107',
+  backgroundColor: '#ff9600',
   paddingVertical: 16,
   borderRadius: 10,
   alignItems: 'center',
@@ -208,11 +180,7 @@ const styles = StyleSheet.create({
   height: 50,
   width: 300,
  },
- nextButtonText: {
-  color: '#fff',
-  fontSize: 18,
-  fontWeight: 'bold',
- },
+ nextButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
  backButton: {
   backgroundColor: '#eaeaea',
   paddingVertical: 16,
@@ -222,11 +190,7 @@ const styles = StyleSheet.create({
   height: 50,
   width: 300,
  },
- backButtonText: {
-  color: '#666666',
-  fontSize: 18,
-  fontWeight: 'bold',
- },
+ backButtonText: { color: '#666666', fontSize: 18, fontWeight: 'bold' },
  modalContainer: {
   flex: 1,
   justifyContent: 'center',
@@ -240,26 +204,14 @@ const styles = StyleSheet.create({
   alignItems: 'center',
   width: '80%',
  },
- modalTitle: {
-  fontSize: 18,
-  fontWeight: 'bold',
-  marginBottom: 15,
- },
- modalMessage: {
-  fontSize: 16,
-  marginBottom: 20,
-  textAlign: 'center',
- },
+ modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15 },
+ modalMessage: { fontSize: 16, marginBottom: 20, textAlign: 'center' },
  modalButton: {
-  backgroundColor: '#FFC107',
+  backgroundColor: '#ff9600',
   paddingVertical: 10,
   borderRadius: 10,
   width: '100%',
   alignItems: 'center',
  },
- modalButtonText: {
-  color: '#fff',
-  fontSize: 16,
-  fontWeight: 'bold',
- },
+ modalButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
 });
