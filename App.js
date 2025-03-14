@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Splash and Onboarding Screens
 import SplashScreen from './screens/SplashScreen';
@@ -11,6 +12,7 @@ import OnboardingScreen2 from './screens/OnboardingScreen2';
 import SignInScreen from './screens/SignInScreen';
 import VerifyMobileScreen from './screens/VerifyMobile';
 import RegisterScreen from './screens/RegisterScreen';
+import LoginOtpScreen from './screens/LoginOtp';
 
 // Main Screens
 import HomeScreen from './screens/HomeScreen';
@@ -34,10 +36,29 @@ import TicketingScreen from './screens/TicketingScreen';
 const Stack = createStackNavigator();
 
 export default function App() {
+ const [isLoggedIn, setIsLoggedIn] = useState(null);
+
+ useEffect(() => {
+  const checkLogginState = async () => {
+   const token = await AsyncStorage.getItem('login_token');
+   if (token) {
+    setIsLoggedIn(true);
+   } else {
+    setIsLoggedIn(false);
+   }
+  };
+
+  checkLogginState();
+ }, []);
+
+ if (isLoggedIn === null) {
+  return <SplashScreen />;
+ }
+
  return (
   <NavigationContainer>
    <Stack.Navigator
-    initialRouteName="Splash" // Define the starting screen
+    initialRouteName={isLoggedIn ? 'Home' : 'Splash'} // Skip login if logged in
     screenOptions={{
      headerShown: false, // Globally hide headers for all screens
     }}
@@ -51,6 +72,7 @@ export default function App() {
     <Stack.Screen name="SignIn" component={SignInScreen} />
     <Stack.Screen name="VerifyMobile" component={VerifyMobileScreen} />
     <Stack.Screen name="Register" component={RegisterScreen} />
+    <Stack.Screen name="LoginOtp" component={LoginOtpScreen} />
 
     {/* Main App Screens */}
     <Stack.Screen name="Home" component={HomeScreen} />

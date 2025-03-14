@@ -7,105 +7,164 @@ import {
  TouchableOpacity,
  KeyboardAvoidingView,
  Modal,
- ScrollView,
- TouchableWithoutFeedback,
- Keyboard,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function RegisterScreen({ navigation }) {
- const [fullName, setFullName] = useState('');
+ const [firstName, setFirstName] = useState('');
+ const [lastName, setLastName] = useState('');
  const [email, setEmail] = useState('');
  const [phoneNumber, setPhoneNumber] = useState('');
  const [address, setAddress] = useState('');
  const [password, setPassword] = useState('');
- const [modalVisible, setModalVisible] = useState(false); // State for controlling modal visibility
+ const [modalVisible, setModalVisible] = useState(false);
+ const [isSuccess, setIsSuccess] = useState(false);
+ const [modalMessage, setModalMessage] = useState('');
 
- const handleRegister = () => {
-  setModalVisible(true); // Show modal after registration
+ //  const handleRegister = () => {
+ //   // You can add your registration logic here
+ //   setModalVisible(true); // Show modal after registration
+ //  };
+
+ const handleRegister = async () => {
+  try {
+   const requestBody = {
+    function: 'CreateDriver',
+    data: {
+     mobile: phoneNumber,
+     email: email,
+     password: password,
+     firstname: firstName,
+     lastname: lastName,
+     address: address,
+    },
+   };
+
+   const response = await fetch(
+    'http://ryde100.introps.com/app_apiv2/app_api',
+    {
+     method: 'POST',
+     headers: { 'Content-Type': 'application/json' },
+     body: JSON.stringify(requestBody),
+    }
+   );
+
+   if (!response.ok) {
+    throw new Error(`HTTP error! Status: ${response.status}`);
+   }
+
+   const result = await response.json();
+
+   if (result.status === 'success') {
+    await AsyncStorage.setItem('login_token', result.login_token);
+    setModalMessage('Your account has been successfully created!');
+    setIsSuccess(true);
+   } else {
+    setModalMessage(result.message || 'Registration Failed. Please Try Again');
+    setIsSuccess(false);
+   }
+  } catch (error) {
+   setModalMessage('Error Registering: ' + error.message);
+   setIsSuccess(false);
+  } finally {
+   setModalVisible(true);
+  }
  };
 
  return (
   <KeyboardAvoidingView style={styles.container} behavior="padding">
-   <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
-     {/* Header Section */}
-     <View style={styles.header}>
-      <Text style={styles.title}>Create an Account</Text>
-      <Text style={styles.subtitle}>
-       Join us to explore endless possibilities. Enter your details to get
-       started!
-      </Text>
-     </View>
+   {/* Header Section */}
+   <View style={styles.header}>
+    <Text style={styles.title}>Create an Account</Text>
+    <Text style={styles.subtitle}>
+     Join us to explore endless possibilities. Enter your details to get
+     started!
+    </Text>
+   </View>
 
-     {/* Input Section */}
-     <View style={styles.inputContainer}>
-      <Text style={styles.label}>Register with your Details</Text>
+   {/* Input Section */}
+   <View style={styles.inputContainer}>
+    <Text style={styles.label}>Register with your Details</Text>
 
-      <TextInput
-       style={styles.textInput}
-       placeholder="Full Name"
-       value={fullName}
-       onChangeText={setFullName}
-      />
+    {/* First Name Input */}
+    <TextInput
+     style={styles.textInput}
+     placeholder="First Name"
+     value={firstName}
+     onChangeText={setFirstName}
+    />
 
-      <TextInput
-       style={styles.textInput}
-       placeholder="Email Address"
-       value={email}
-       onChangeText={setEmail}
-       keyboardType="email-address"
-      />
+    {/* First Name Input */}
+    <TextInput
+     style={styles.textInput}
+     placeholder="Last Name"
+     value={lastName}
+     onChangeText={setLastName}
+    />
 
-      <TextInput
-       style={styles.textInput}
-       placeholder="Phone Number"
-       value={phoneNumber}
-       onChangeText={setPhoneNumber}
-       keyboardType="phone-pad"
-      />
+    {/* Email Input */}
+    <TextInput
+     style={styles.textInput}
+     placeholder="Email Address"
+     value={email}
+     onChangeText={setEmail}
+     keyboardType="email-address"
+    />
 
-      <TextInput
-       style={styles.textInput}
-       placeholder="Address"
-       value={address}
-       onChangeText={setAddress}
-      />
+    {/* Phone Number Input */}
+    <TextInput
+     style={styles.textInput}
+     placeholder="Phone Number"
+     value={phoneNumber}
+     onChangeText={setPhoneNumber}
+     keyboardType="phone-pad"
+    />
 
-      <TextInput
-       style={styles.textInput}
-       placeholder="Password"
-       value={password}
-       onChangeText={setPassword}
-       secureTextEntry
-      />
+    {/* Address Input */}
+    <TextInput
+     style={styles.textInput}
+     placeholder="Address"
+     value={address}
+     onChangeText={setAddress}
+    />
 
-      {/* Register Button */}
-      <TouchableOpacity style={styles.nextButton} onPress={handleRegister}>
-       <Text style={styles.nextButtonText}>Register</Text>
-      </TouchableOpacity>
+    {/* Password Input */}
+    <TextInput
+     style={styles.textInput}
+     placeholder="Password"
+     value={password}
+     onChangeText={setPassword}
+     secureTextEntry
+    />
 
-      {/* Cancel Button */}
-      <TouchableOpacity
-       style={styles.cancelButton}
-       onPress={() => navigation.goBack()}
-      >
-       <Text style={styles.cancelButtonText}>Cancel</Text>
-      </TouchableOpacity>
+    {/* Register Button */}
+    <TouchableOpacity
+     style={styles.nextButton}
+     onPress={handleRegister} // Show modal on register
+    >
+     <Text style={styles.nextButtonText}>Register</Text>
+    </TouchableOpacity>
 
-      {/* Already have an account? */}
-      <TouchableOpacity onPress={() => navigation.navigate('SignIn')}>
-       <Text style={styles.linkText}>Already have an account? Sign In</Text>
-      </TouchableOpacity>
-     </View>
-    </ScrollView>
-   </TouchableWithoutFeedback>
+    {/* Cancel Button */}
+    <TouchableOpacity
+     style={styles.cancelButton}
+     onPress={() => navigation.goBack()} // Navigate back to the previous screen
+    >
+     <Text style={styles.cancelButtonText}>Cancel</Text>
+    </TouchableOpacity>
+
+    {/* Already have an account? */}
+    <TouchableOpacity onPress={() => navigation.navigate('SignIn')}>
+     <Text style={styles.linkText}>Already have an account? Sign In</Text>
+    </TouchableOpacity>
+   </View>
 
    {/* Registration Success Modal */}
    <Modal
     animationType="slide"
     transparent={true}
     visible={modalVisible}
-    onRequestClose={() => setModalVisible(false)}
+    onRequestClose={() => setModalVisible(false)} // Close modal
    >
     <View style={styles.modalContainer}>
      <View style={styles.modalContent}>
@@ -115,7 +174,10 @@ export default function RegisterScreen({ navigation }) {
       </Text>
       <TouchableOpacity
        style={styles.modalButton}
-       onPress={() => setModalVisible(false)}
+       onPress={() => {
+        setModalVisible(false);
+        if (isSuccess) navigation.navigate('VerifyMobile');
+       }}
       >
        <Text style={styles.modalButtonText}>Close</Text>
       </TouchableOpacity>
@@ -131,12 +193,8 @@ const styles = StyleSheet.create({
   flex: 1,
   backgroundColor: '#fff',
  },
- scrollContainer: {
-  flexGrow: 1,
-  paddingBottom: 20,
- },
  header: {
-  backgroundColor: '#FFC107',
+  backgroundColor: '#FFC107', // Green header background
   borderBottomRightRadius: 50,
   padding: 20,
   paddingTop: 50,
@@ -172,7 +230,7 @@ const styles = StyleSheet.create({
   backgroundColor: '#f9f9f9',
  },
  nextButton: {
-  backgroundColor: '#FFC107',
+  backgroundColor: '#FFC107', // Green button
   paddingVertical: 15,
   borderRadius: 10,
   alignItems: 'center',
@@ -191,7 +249,7 @@ const styles = StyleSheet.create({
   height: 50,
  },
  cancelButtonText: {
-  color: '#666666',
+  color: '#666666', // Dark text for the Cancel button
   fontSize: 16,
   fontWeight: 'bold',
  },
@@ -206,7 +264,7 @@ const styles = StyleSheet.create({
   flex: 1,
   justifyContent: 'center',
   alignItems: 'center',
-  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent background
  },
  modalContent: {
   backgroundColor: '#fff',
@@ -226,7 +284,7 @@ const styles = StyleSheet.create({
   textAlign: 'center',
  },
  modalButton: {
-  backgroundColor: '#FFC107',
+  backgroundColor: '#FFC107', // Button color
   paddingVertical: 10,
   borderRadius: 10,
   width: '100%',
