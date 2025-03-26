@@ -18,6 +18,7 @@ import LoginOtpScreen from './screens/LoginOtp';
 import HomeScreen from './screens/HomeScreen';
 import MapScreen from './screens/MapScreen';
 import DriverDetailsScreen from './screens/DriverDetailsScreen';
+import OnlineHome from './screens/OnlineHome';
 
 // Additional Screens (Side Menu Items)
 import UserScreen from './screens/UserScreen';
@@ -36,74 +37,56 @@ import TicketingScreen from './screens/TicketingScreen';
 const Stack = createStackNavigator();
 
 export default function App() {
- const [isLoggedIn, setIsLoggedIn] = useState(null);
+    const [isLoggedIn, setIsLoggedIn] = useState(null);
 
- useEffect(() => {
-  const checkLogginState = async () => {
-   const token = await AsyncStorage.getItem('login_token');
-   if (token) {
-    setIsLoggedIn(true);
-   } else {
-    setIsLoggedIn(false);
-   }
-  };
+    useEffect(() => {
+        const checkLoginState = async () => {
+            const token = await AsyncStorage.getItem('login_token');
+            setIsLoggedIn(!!token);
+        };
 
-  checkLogginState();
- }, []);
+        checkLoginState();
+    }, []);
 
- if (isLoggedIn === null) {
-  return <SplashScreen />;
- }
+    if (isLoggedIn === null) {
+        return <SplashScreen />;
+    }
 
- return (
-  <NavigationContainer>
-   <Stack.Navigator
-    initialRouteName={isLoggedIn ? 'Home' : 'Splash'} // Skip login if logged in
-    screenOptions={{
-     headerShown: false, // Globally hide headers for all screens
-    }}
-   >
-    {/* Splash and Onboarding Screens */}
-    <Stack.Screen name="Splash" component={SplashScreen} />
-    <Stack.Screen name="Onboarding1" component={OnboardingScreen1} />
-    <Stack.Screen name="Onboarding2" component={OnboardingScreen2} />
+    return (
+        <NavigationContainer>
+            <Stack.Navigator
+                initialRouteName={isLoggedIn ? 'Home' : 'Splash'}
+                screenOptions={{ headerShown: false }}
+            >
+                {/* Splash and Onboarding Screens */}
+                <Stack.Screen name="Splash" component={SplashScreen} />
+                <Stack.Screen name="Onboarding1" component={OnboardingScreen1} />
+                <Stack.Screen name="Onboarding2" component={OnboardingScreen2} />
 
-    {/* Authentication Screens */}
-    <Stack.Screen name="SignIn" component={SignInScreen} />
-    <Stack.Screen name="VerifyMobile" component={VerifyMobileScreen} />
-    <Stack.Screen name="Register" component={RegisterScreen} />
-    <Stack.Screen name="LoginOtp" component={LoginOtpScreen} />
+                {/* Authentication Screens */}
+                <Stack.Screen name="SignIn" component={SignInScreen} />
+                <Stack.Screen name="VerifyMobile" component={VerifyMobileScreen} />
+                <Stack.Screen name="Register" component={RegisterScreen} />
+                <Stack.Screen name="LoginOtp" component={LoginOtpScreen} />
 
-    {/* Main App Screens */}
-    <Stack.Screen name="Home" component={HomeScreen} />
-    <Stack.Screen name="UploadScreen" component={DriverDetailsScreen} />
-    <Stack.Screen name="MapScreen" component={MapScreen} />
+                {/* Main App Screens */}
+                <Stack.Screen name="Home" component={HomeScreen} />
+                <Stack.Screen name="UploadScreen" component={DriverDetailsScreen} />
+                <Stack.Screen name="MapScreen" component={MapScreen} />
+                <Stack.Screen name="OnlineHome" component={OnlineHome} />
 
-    {/* Side Menu Screens */}
-    <Stack.Screen name="UserScreen" component={UserScreen} />
-    <Stack.Screen name="NotificationsScreen" component={NotificationsScreen} />
-    <Stack.Screen name="PaymentsScreen" component={PaymentsScreen} />
-    <Stack.Screen name="HistoryScreen" component={HistoryScreen} />
-    <Stack.Screen name="SupportScreen" component={SupportScreen} />
-    <Stack.Screen name="DriverScreen" component={DriverScreen} />
-    <Stack.Screen
-     name="PersonalDetailsScreen"
-     component={PersonalDetailsScreen}
-    />
-    <Stack.Screen
-     name="LicenseDocumentsScreen"
-     component={LicenseDocumentsScreen}
-    />
-    <Stack.Screen
-     name="VehicleDetailsScreen"
-     component={VehicleDetailsScreen}
-    />
-    <Stack.Screen
-     name="SingleTripViewScreen"
-     component={SingleTripViewScreen}
-    />
-    <Stack.Screen name="TicketingScreen" component={TicketingScreen} />
-   </Stack.Navigator>
-  </NavigationContainer>
- );
+                {/* Side Menu Screens */}
+                <Stack.Screen name="UserScreen" component={UserScreen} />
+                <Stack.Screen name="NotificationsScreen" component={NotificationsScreen} />
+                <Stack.Screen name="PaymentsScreen" component={PaymentsScreen} />
+                <Stack.Screen name="HistoryScreen" component={HistoryScreen} />
+                <Stack.Screen name="SupportScreen" component={SupportScreen} />
+                <Stack.Screen name="DriverScreen" component={DriverScreen} />
+                <Stack.Screen name="PersonalDetailsScreen" component={PersonalDetailsScreen} />
+                <Stack.Screen name="LicenseDocumentsScreen" component={LicenseDocumentsScreen} />
+                <Stack.Screen name="VehicleDetailsScreen" component={VehicleDetailsScreen} />
+                <Stack.Screen name="SingleTripViewScreen" component={SingleTripViewScreen} />
+            </Stack.Navigator>
+        </NavigationContainer>
+    );
 }

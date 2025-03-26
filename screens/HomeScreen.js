@@ -252,19 +252,22 @@ const HomeScreen = ({ navigation }) => {
             <ScrollView style={styles.content}>
                 {/* Driver Stats */}
                 <View style={styles.statsContainer}>
-                    <View style={styles.statCard}>
-                        <Text style={styles.statValue}>5</Text>
-                        <Text style={styles.statLabel}>Active Rides</Text>
-                    </View>
-                    <View style={styles.statCard}>
-                        <Text style={styles.statValue}>$120</Text>
-                        <Text style={styles.statLabel}>Today Earnings</Text>
-                    </View>
-                    <View style={styles.statCard}>
-                        <Text style={styles.statValue}>4.8</Text>
-                        <Text style={styles.statLabel}>Rating</Text>
-                    </View>
-                </View>
+    <TouchableOpacity 
+        style={styles.statCard} 
+        onPress={() => navigation.navigate('OnlineHome')}
+    >
+        <Text style={styles.statValue}>5</Text>
+        <Text style={styles.statLabel}>Active Rides</Text>
+    </TouchableOpacity>
+    <View style={styles.statCard}>
+        <Text style={styles.statValue}>$120</Text>
+        <Text style={styles.statLabel}>Today Earnings</Text>
+    </View>
+    <View style={styles.statCard}>
+        <Text style={styles.statValue}>4.8</Text>
+        <Text style={styles.statLabel}>Rating</Text>
+    </View>
+</View>
 
                 {/* Current Ride */}
                 <Text style={styles.sectionTitle}>Current Ride</Text>
