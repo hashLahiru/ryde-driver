@@ -14,6 +14,7 @@ import { Picker } from '@react-native-picker/picker';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Dimensions } from 'react-native';
 
 const HomeScreen = ({ navigation }) => {
     const [sideMenuVisible, setSideMenuVisible] = useState(false);
@@ -310,6 +311,8 @@ const HomeScreen = ({ navigation }) => {
     );
 };
 
+const { width, height } = Dimensions.get('window');
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -317,10 +320,10 @@ const styles = StyleSheet.create({
     },
     header: {
         backgroundColor: '#FFC107',
-        padding: 20,
-        paddingTop: 40,
-        height: 150,
-        borderBottomRightRadius: 50,
+        padding: width * 0.05,
+        paddingTop: height * 0.05,
+        height: height * 0.15,
+        borderBottomRightRadius: width * 0.1,
     },
     headerContent: {
         flexDirection: 'row',
@@ -331,10 +334,10 @@ const styles = StyleSheet.create({
         color: '#fff',
     },
     logoText: {
-        fontSize: 24,
+        fontSize: width * 0.06,
         fontWeight: 'bold',
         color: '#fff',
-        marginRight: 80,
+        marginRight: width * 0.2,
     },
     notificationIcon: {
         color: '#fff',
@@ -345,7 +348,7 @@ const styles = StyleSheet.create({
         marginLeft: 0,
     },
     onlineStatusText: {
-        fontSize: 14,
+        fontSize: width * 0.035,
         fontWeight: 'bold',
         color: 'black',
         marginRight: 0,
@@ -353,21 +356,21 @@ const styles = StyleSheet.create({
     sideMenu: {
         flex: 1,
         backgroundColor: '#333',
-        padding: 20,
+        padding: width * 0.05,
         width: '70%',
     },
     sideMenuHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: height * 0.02,
     },
     sideMenuLogo: {
-        width: 40,
-        height: 40,
-        marginRight: 10,
+        width: width * 0.1,
+        height: width * 0.1,
+        marginRight: width * 0.025,
     },
     sideMenuTitle: {
-        fontSize: 20,
+        fontSize: width * 0.05,
         fontWeight: 'bold',
         color: '#fff',
     },
@@ -375,82 +378,82 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     menuItem: {
-        fontSize: 18,
-        paddingVertical: 15,
+        fontSize: width * 0.045,
+        paddingVertical: height * 0.02,
         color: '#fff',
     },
     sideMenuFooter: {
         borderTopWidth: 1,
         borderTopColor: '#444',
-        paddingTop: 10,
+        paddingTop: height * 0.01,
     },
     footerText: {
         color: '#fff',
-        fontSize: 12,
+        fontSize: width * 0.03,
     },
     content: {
-        padding: 15,
+        padding: width * 0.04,
     },
     statsContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 20,
-        marginTop: 30,
+        marginBottom: height * 0.02,
+        marginTop: height * 0.03,
     },
     statCard: {
         flex: 1,
         alignItems: 'center',
         backgroundColor: '#999999',
-        borderRadius: 10,
-        padding: 15,
-        marginHorizontal: 5,
+        borderRadius: width * 0.025,
+        padding: width * 0.04,
+        marginHorizontal: width * 0.01,
     },
     statValue: {
-        fontSize: 20,
+        fontSize: width * 0.05,
         fontWeight: 'bold',
         color: '#fff',
     },
     statLabel: {
-        fontSize: 14,
+        fontSize: width * 0.035,
         color: '#fff',
     },
     sectionTitle: {
-        fontSize: 18,
+        fontSize: width * 0.045,
         fontWeight: 'bold',
-        marginVertical: 10,
+        marginVertical: height * 0.01,
     },
     currentRideCard: {
         backgroundColor: '#f5f5f5',
-        borderRadius: 10,
-        padding: 15,
-        marginBottom: 20,
+        borderRadius: width * 0.025,
+        padding: width * 0.04,
+        marginBottom: height * 0.02,
     },
     rideDetail: {
-        fontSize: 14,
+        fontSize: width * 0.035,
         color: '#555',
-        marginBottom: 5,
+        marginBottom: height * 0.005,
     },
     startRideButton: {
-        marginTop: 10,
+        marginTop: height * 0.01,
         backgroundColor: '#FFC107',
-        padding: 10,
-        paddingVertical: 14,
-        borderRadius: 5,
+        padding: width * 0.025,
+        paddingVertical: height * 0.014,
+        borderRadius: width * 0.0125,
         alignItems: 'center',
     },
     startRideText: {
         color: '#fff',
-        fontSize: 16,
+        fontSize: width * 0.04,
         fontWeight: 'bold',
     },
     earningsCard: {
         backgroundColor: '#f5f5f5',
-        borderRadius: 10,
-        padding: 15,
-        marginBottom: 20,
+        borderRadius: width * 0.025,
+        padding: width * 0.04,
+        marginBottom: height * 0.02,
     },
     earningsText: {
-        fontSize: 14,
+        fontSize: width * 0.035,
         color: '#555',
     },
     supportButton: {
@@ -458,21 +461,21 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: '#999',
-        borderRadius: 10,
-        padding: 15,
-        marginBottom: 20,
+        borderRadius: width * 0.025,
+        padding: width * 0.04,
+        marginBottom: height * 0.02,
     },
     supportText: {
         color: '#fff',
-        fontSize: 16,
+        fontSize: width * 0.04,
         fontWeight: 'bold',
-        marginLeft: 10,
+        marginLeft: width * 0.025,
     },
     dropdown: {
-        height: 50,
+        height: height * 0.05,
         width: '100%',
         backgroundColor: '#fff',
-        borderRadius: 5,
+        borderRadius: width * 0.0125,
     },
 });
 
