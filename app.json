@@ -1,28 +1,33 @@
 {
-  "expo": {
-    "name": "ryde",
-    "slug": "ryde",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "ios": {
-      "supportsTablet": true
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      }
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
+    "expo": {
+        "name": "ryde",
+        "slug": "ryde",
+        "version": "1.0.0",
+        "orientation": "portrait",
+        "icon": "./assets/icon.png",
+        "userInterfaceStyle": "light",
+        "newArchEnabled": true,
+        "splash": {
+            "image": "./assets/splash-icon.png",
+            "resizeMode": "contain",
+            "backgroundColor": "#ffffff"
+        },
+        "ios": {
+            "supportsTablet": true
+        },
+        "android": {
+            "adaptiveIcon": {
+                "foregroundImage": "./assets/adaptive-icon.png",
+                "backgroundColor": "#ffffff"
+            }
+        },
+        "web": {
+            "favicon": "./assets/favicon.png"
+        },
+        "extra": {
+            "GOOGLE_API_KEY": "AIzaSyACSqBvJsdqmNey_aeN8FgvdYzeV88_vww",
+            "GOOGLE_DIRECTIONS_API_KEY": "AIzaSyAzjm5FmkJ1AI0MSde4vmoXeJY5lZXlAFY",
+            "GOOGLE_PLACES_API_KEY": "AIzaSyB2g8iWNkhS0omQ3c0yz70fYnBfrZ-IZj0"
+        }
     }
-  }
 }

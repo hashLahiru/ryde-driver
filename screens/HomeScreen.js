@@ -18,7 +18,7 @@ import { Dimensions } from 'react-native';
 
 const HomeScreen = ({ navigation }) => {
     const [sideMenuVisible, setSideMenuVisible] = useState(false);
-    const [isOnline, setIsOnline] = useState(true);
+    const [isOnline, setIsOnline] = useState(false);
     const [vehicles, setVehicles] = useState([]);
     const [selectedVehicle, setSelectedVehicle] = useState(null);
     const locationInterval = useRef(null);
@@ -26,7 +26,8 @@ const HomeScreen = ({ navigation }) => {
     useEffect(() => {
         fetchVehicleData();
         if (isOnline) {
-            startLocationUpdates();
+            // startLocationUpdates();
+            navigation.navigate('OnlineHome');
         } else {
             stopLocationUpdates();
         }
@@ -68,11 +69,12 @@ const HomeScreen = ({ navigation }) => {
             );
     };
 
-    const handleVehicleChange = (vehicleId) => {
+    const handleVehicleChange = async (vehicleId) => {
         setSelectedVehicle(vehicleId);
         const selectedVehicleData = vehicles.find(
             (v) => v.vehicle_id === vehicleId
         );
+        await AsyncStorage.setItem('selected_vehicle_id', vehicleId);
         Alert.alert(
             `Vehicle changed to ${selectedVehicleData.reg_no} - ${selectedVehicleData.model}`
         );
@@ -253,22 +255,22 @@ const HomeScreen = ({ navigation }) => {
             <ScrollView style={styles.content}>
                 {/* Driver Stats */}
                 <View style={styles.statsContainer}>
-    <TouchableOpacity 
-        style={styles.statCard} 
-        onPress={() => navigation.navigate('OnlineHome')}
-    >
-        <Text style={styles.statValue}>5</Text>
-        <Text style={styles.statLabel}>Active Rides</Text>
-    </TouchableOpacity>
-    <View style={styles.statCard}>
-        <Text style={styles.statValue}>$120</Text>
-        <Text style={styles.statLabel}>Today Earnings</Text>
-    </View>
-    <View style={styles.statCard}>
-        <Text style={styles.statValue}>4.8</Text>
-        <Text style={styles.statLabel}>Rating</Text>
-    </View>
-</View>
+                    <TouchableOpacity
+                        style={styles.statCard}
+                        onPress={() => navigation.navigate('OnlineHome')}
+                    >
+                        <Text style={styles.statValue}>5</Text>
+                        <Text style={styles.statLabel}>Active Rides</Text>
+                    </TouchableOpacity>
+                    <View style={styles.statCard}>
+                        <Text style={styles.statValue}>$120</Text>
+                        <Text style={styles.statLabel}>Today Earnings</Text>
+                    </View>
+                    <View style={styles.statCard}>
+                        <Text style={styles.statValue}>4.8</Text>
+                        <Text style={styles.statLabel}>Rating</Text>
+                    </View>
+                </View>
 
                 {/* Current Ride */}
                 <Text style={styles.sectionTitle}>Current Ride</Text>
