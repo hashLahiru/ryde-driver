@@ -9,6 +9,8 @@ import {
     Modal,
     Alert,
     Switch,
+    Platform,
+    FlatList,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -20,17 +22,26 @@ const HomeScreen = ({ navigation }) => {
     const [sideMenuVisible, setSideMenuVisible] = useState(false);
     const [isOnline, setIsOnline] = useState(false);
     const [vehicles, setVehicles] = useState([]);
-    const [selectedVehicle, setSelectedVehicle] = useState(null);
+    const [selectedVehicle, setSelectedVehicle] = useState('');
     const locationInterval = useRef(null);
 
+    const [showIosPicker, setShowIosPicker] = useState(false);
+    const [showVehicleSelector, setShowVehicleSelector] = useState(false);
+
     useEffect(() => {
-        fetchVehicleData();
-        if (isOnline) {
-            // startLocationUpdates();
-            navigation.navigate('OnlineHome');
-        } else {
-            stopLocationUpdates();
-        }
+        const fetchDataAndCheckStatus = async () => {
+            await fetchVehicleData();
+            // await AsyncStorage.removeItem('login_token');
+            if (isOnline) {
+                // startLocationUpdates();
+                navigation.navigate('OnlineHome');
+            } else {
+                stopLocationUpdates();
+            }
+        };
+
+        fetchDataAndCheckStatus();
+
         return () => stopLocationUpdates();
     }, [isOnline]);
 
@@ -42,42 +53,78 @@ const HomeScreen = ({ navigation }) => {
         }
 
         const requestData = {
-            function: 'getVehicleByToken',
+            function: 'getVehiclesByToken',
             data: {
                 login_token: login_token,
             },
         };
 
-        fetch('http://ryde100.introps.com/App_apiv2/app_api', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestData),
-        })
-            .then((response) => response.json())
-            .then((data) => {
-                if (data.status === 'success') {
-                    setVehicles(data.data);
-                    if (data.data.length > 0) {
-                        setSelectedVehicle(data.data[0].vehicle_id);
-                    }
+        try {
+            const response = await fetch(
+                'http://ryde100.introps.com/App_apiv2/app_api',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(requestData),
                 }
-            })
-            .catch((error) =>
-                console.error('Error fetching vehicle data', error)
             );
+            const data = await response.json();
+            console.log('Vehicle Data: ', data);
+
+            if (data.status === 'success' && data.data?.length > 0) {
+                setVehicles(data.data);
+
+                // Load saved vehicle from AsyncStorage
+                const savedVehicleId = await AsyncStorage.getItem(
+                    'selected_vehicle_id'
+                );
+
+                // Check if saved vehicle exists in the fetched data
+                const vehicleExists = data.data.some(
+                    (v) => v.vehicle_id === savedVehicleId
+                );
+
+                if (savedVehicleId && vehicleExists) {
+                    // Use the saved vehicle if it exists
+                    setSelectedVehicle(savedVehicleId);
+                    console.log('Using saved vehicle ID:', savedVehicleId);
+                } else {
+                    // Otherwise use the first vehicle and save it
+                    const firstVehicleId = data.data[0].vehicle_id.toString();
+                    setSelectedVehicle(firstVehicleId);
+                    await AsyncStorage.setItem(
+                        'selected_vehicle_id',
+                        firstVehicleId
+                    );
+                    console.log('Setting default vehicle ID:', firstVehicleId);
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching vehicle data', error);
+        }
     };
 
     const handleVehicleChange = async (vehicleId) => {
-        setSelectedVehicle(vehicleId);
+        if (!vehicleId) return;
+
         const selectedVehicleData = vehicles.find(
             (v) => v.vehicle_id === vehicleId
         );
-        await AsyncStorage.setItem('selected_vehicle_id', vehicleId);
-        Alert.alert(
-            `Vehicle changed to ${selectedVehicleData.reg_no} - ${selectedVehicleData.model}`
-        );
+        if (selectedVehicleData) {
+            // Update both state and storage
+            setSelectedVehicle(vehicleId);
+            await AsyncStorage.setItem(
+                'selected_vehicle_id',
+                vehicleId.toString() // Ensure we store as string
+            );
+
+            console.log('Vehicle changed to:', vehicleId);
+            Alert.alert(
+                `Vehicle changed to ${selectedVehicleData.reg_no} | ${selectedVehicleData.model}`
+            );
+        }
     };
 
     const startLocationUpdates = async () => {
@@ -97,49 +144,87 @@ const HomeScreen = ({ navigation }) => {
     };
 
     const sendLocationUpdate = async (status) => {
-        const login_token = await AsyncStorage.getItem('login_token');
-        console.log('Login Token : ', login_token);
-        if (!login_token) {
-            console.error('login token missing');
-            return;
-        }
-
-        const { status: permissionStatus } =
-            await Location.requestForegroundPermissionsAsync();
-        if (permissionStatus !== 'granted') {
-            console.error('Location permission not granted');
-            return;
-        }
-
-        const location = await Location.getCurrentPositionAsync({});
-        if (!location) {
-            console.error('Failed to get location');
-            return;
-        }
-
-        const requestData = {
-            function: 'UpdateVehicleLocation',
-            data: {
-                login_token: login_token,
-                vehicle_id: '124',
-                latitude: location.coords.latitude.toString(),
-                longitude: location.coords.longitude.toString(),
-                status: status,
-            },
-        };
-
-        fetch('http://ryde100.introps.com/App_apiv2/app_api', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestData),
-        })
-            .then((response) => response.json())
-            .then((data) => console.log('Location Updated: ', data))
-            .catch((error) =>
-                console.error('Error fetching location : ', error)
+        try {
+            // 1. Validate required data
+            const login_token = await AsyncStorage.getItem('login_token');
+            const vehicle_id = await AsyncStorage.getItem(
+                'selected_vehicle_id'
             );
+
+            if (!login_token || !vehicle_id) {
+                throw new Error('Missing required credentials');
+            }
+
+            // 2. Get location
+            const { status: permissionStatus } =
+                await Location.requestForegroundPermissionsAsync();
+            if (permissionStatus !== 'granted') {
+                throw new Error('Location permission not granted');
+            }
+
+            const location = await Location.getCurrentPositionAsync({});
+            if (!location) {
+                throw new Error('Failed to get location');
+            }
+
+            // 3. Prepare request
+            const requestData = {
+                function: 'UpdateVehicleLocation',
+                data: {
+                    login_token,
+                    vehicle_id,
+                    latitude: location.coords.latitude.toString(),
+                    longitude: location.coords.longitude.toString(),
+                    status,
+                },
+            };
+
+            // 4. Make the request
+            const response = await fetch(
+                'http://ryde100.introps.com/App_apiv2/app_api',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                    },
+                    body: JSON.stringify(requestData),
+                }
+            );
+
+            // 5. Handle the problematic response
+            const rawResponse = await response.text();
+
+            // Extract JSON from the response (handles PHP errors in output)
+            const jsonStart = rawResponse.indexOf('{');
+            const jsonEnd = rawResponse.lastIndexOf('}');
+
+            if (jsonStart === -1 || jsonEnd === -1) {
+                console.error('No JSON found in response:', rawResponse);
+                throw new Error('Invalid server response format');
+            }
+
+            try {
+                const jsonString = rawResponse.substring(
+                    jsonStart,
+                    jsonEnd + 1
+                );
+                const data = JSON.parse(jsonString);
+
+                if (data.status === 'success') {
+                    console.log('Location update successful:', data.message);
+                    return data;
+                } else {
+                    throw new Error(data.message || 'Update failed');
+                }
+            } catch (e) {
+                console.error('Failed to parse JSON:', e);
+                throw new Error('Failed to process server response');
+            }
+        } catch (error) {
+            console.error('Error in sendLocationUpdate:', error.message);
+            throw error; // Re-throw for calling code to handle
+        }
     };
 
     const toggleSideMenu = () => {
@@ -253,6 +338,110 @@ const HomeScreen = ({ navigation }) => {
 
             {/* Content */}
             <ScrollView style={styles.content}>
+                {/* Active Rides Dropdown */}
+                <View style={styles.container}>
+                    {/* Dropdown for Active Rides */}
+                    <View style={styles.dropdownContainer}>
+                        <Text style={styles.dropdownLabel}>
+                            Select a vehicle
+                        </Text>
+                        <TouchableOpacity
+                            style={styles.selectorButton}
+                            onPress={() => setShowVehicleSelector(true)}
+                        >
+                            <Text style={styles.selectorButtonText}>
+                                {selectedVehicle && vehicles.length > 0
+                                    ? `${vehicles.find((v) => v.vehicle_id === selectedVehicle)?.reg_no || ''} | ${vehicles.find((v) => v.vehicle_id === selectedVehicle)?.model || ''}`
+                                    : 'Select a vehicle'}
+                            </Text>
+                            <MaterialIcons
+                                name="arrow-drop-down"
+                                size={24}
+                                color="black"
+                            />
+                        </TouchableOpacity>
+
+                        {/* Vehicle Selection Modal */}
+                        <Modal
+                            visible={showVehicleSelector}
+                            transparent={true}
+                            animationType="slide"
+                            onRequestClose={() => setShowVehicleSelector(false)}
+                        >
+                            <View style={styles.selectorModalContainer}>
+                                <View style={styles.selectorModal}>
+                                    <Text style={styles.selectorTitle}>
+                                        Select Vehicle
+                                    </Text>
+
+                                    <FlatList
+                                        data={vehicles}
+                                        keyExtractor={(item) => item.vehicle_id}
+                                        renderItem={({ item }) => (
+                                            <TouchableOpacity
+                                                style={[
+                                                    styles.vehicleItem,
+                                                    selectedVehicle ===
+                                                        item.vehicle_id &&
+                                                        styles.selectedVehicleItem,
+                                                ]}
+                                                onPress={() => {
+                                                    handleVehicleChange(
+                                                        item.vehicle_id
+                                                    );
+                                                    setShowVehicleSelector(
+                                                        false
+                                                    );
+                                                }}
+                                            >
+                                                <Text
+                                                    style={
+                                                        styles.vehicleItemText
+                                                    }
+                                                >
+                                                    {item.reg_no} | {item.model}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        )}
+                                        ItemSeparatorComponent={() => (
+                                            <View style={styles.separator} />
+                                        )}
+                                    />
+
+                                    <TouchableOpacity
+                                        style={styles.cancelButton}
+                                        onPress={() =>
+                                            setShowVehicleSelector(false)
+                                        }
+                                    >
+                                        <Text style={styles.cancelButtonText}>
+                                            Cancel
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </Modal>
+                    </View>
+
+                    {/* Update the selected vehicle display section */}
+                    {selectedVehicle && vehicles.length > 0 && (
+                        <View style={styles.selectedVehicleContainer}>
+                            <Text style={styles.selectedVehicleText}>
+                                Selected Vehicle:{' '}
+                                {`${
+                                    vehicles.find(
+                                        (v) => v.vehicle_id === selectedVehicle
+                                    )?.reg_no || ''
+                                } | ${
+                                    vehicles.find(
+                                        (v) => v.vehicle_id === selectedVehicle
+                                    )?.model || ''
+                                }`}
+                            </Text>
+                        </View>
+                    )}
+                </View>
+
                 {/* Driver Stats */}
                 <View style={styles.statsContainer}>
                     <TouchableOpacity
@@ -476,11 +665,126 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         marginLeft: width * 0.025,
     },
+    dropdownContainer: {
+        marginBottom: 20,
+    },
+    dropdownLabel: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginBottom: 5,
+    },
     dropdown: {
-        height: height * 0.05,
-        width: '100%',
+        height: 50,
+        borderWidth: 1,
+        borderColor: '#ccc',
+        borderRadius: 5,
+    },
+    selectedVehicleContainer: {
+        marginTop: 20,
+        padding: 10,
+        backgroundColor: '#f0f0f0',
+        borderRadius: 5,
+    },
+    selectedVehicleText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    iosPickerTrigger: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        height: 50,
+        borderWidth: 1,
+        borderColor: '#ccc',
+        borderRadius: 5,
+        paddingHorizontal: 10,
+        marginBottom: 10,
+    },
+    iosPickerText: {
+        fontSize: 16,
+    },
+    iosPickerContainer: {
+        flex: 1,
+        justifyContent: 'flex-end',
+        backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    iosPickerHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        padding: 15,
+        backgroundColor: '#f9f9f9',
+        borderTopWidth: 1,
+        borderTopColor: '#ececec',
+    },
+    iosPickerCancel: {
+        color: '#007AFF',
+        fontSize: 16,
+    },
+    iosPickerDone: {
+        color: '#007AFF',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    iosPicker: {
+        backgroundColor: 'white',
+    },
+    selectorButton: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        height: 50,
+        borderWidth: 1,
+        borderColor: '#ccc',
+        borderRadius: 5,
+        paddingHorizontal: 15,
+        marginBottom: 10,
         backgroundColor: '#fff',
-        borderRadius: width * 0.0125,
+    },
+    selectorButtonText: {
+        fontSize: 16,
+        color: '#333',
+    },
+    selectorModalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    selectorModal: {
+        backgroundColor: '#fff',
+        marginHorizontal: 20,
+        borderRadius: 10,
+        maxHeight: Dimensions.get('window').height * 0.6,
+    },
+    selectorTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        padding: 15,
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee',
+        textAlign: 'center',
+    },
+    vehicleItem: {
+        padding: 15,
+    },
+    selectedVehicleItem: {
+        backgroundColor: '#f0f0f0',
+    },
+    vehicleItemText: {
+        fontSize: 16,
+    },
+    separator: {
+        height: 1,
+        backgroundColor: '#eee',
+    },
+    cancelButton: {
+        padding: 15,
+        borderTopWidth: 1,
+        borderTopColor: '#eee',
+        alignItems: 'center',
+    },
+    cancelButtonText: {
+        color: '#007AFF',
+        fontSize: 16,
     },
 });
 
