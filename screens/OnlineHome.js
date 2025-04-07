@@ -24,12 +24,6 @@ const OnlineHome = ({ navigation }) => {
     const [isOnline, setIsOnline] = useState(true);
     const blinkAnim = useState(new Animated.Value(0))[0];
     const [rideStatus, setRideStatus] = useState('looking');
-    // const [rideDetails, setRideDetails] = useState({
-    //     pickup: 'Pending',
-    //     drop: 'Pending',
-    //     distance: 'Calculating...',
-    //     price: 'Pending',
-    // });
     const [tripStarted, setTripStarted] = useState(false);
     const [region, setRegion] = useState(null);
     const [pickupCoords, setPickupCoords] = useState(null);
@@ -38,6 +32,9 @@ const OnlineHome = ({ navigation }) => {
     const [dropAddress, setDropAddress] = useState('Fetching address...');
     const [routeDistance, setRouteDistance] = useState('Calculating...');
     const [routePrice, setRoutePrice] = useState('Calculating...');
+    const [routeDuration, setRouteDuration] = useState('Calculating...');
+    const [approvedRideId, setApprovedRideId] = useState('');
+    const [pendingRideId, setPendingRideId] = useState('');
 
     const locationInterval = useRef(null);
     const rideCheckInterval = useRef(null);
@@ -99,6 +96,14 @@ const OnlineHome = ({ navigation }) => {
                 return;
             }
 
+            const selectedVehicleId = await AsyncStorage.getItem(
+                'selected_vehicle_id'
+            );
+            if (!selectedVehicleId) {
+                console.error('No selected Vehicle');
+                return;
+            }
+
             setLocation(location.coords);
             setRegion({
                 latitude: location.coords.latitude,
@@ -111,7 +116,7 @@ const OnlineHome = ({ navigation }) => {
                 function: 'UpdateVehicleLocation',
                 data: {
                     login_token: login_token,
-                    vehicle_id: '124',
+                    vehicle_id: selectedVehicleId.toString(),
                     latitude: location.coords.latitude.toString(),
                     longitude: location.coords.longitude.toString(),
                     status: status,
@@ -124,15 +129,39 @@ const OnlineHome = ({ navigation }) => {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        Accept: 'application/json',
                     },
                     body: JSON.stringify(requestData),
                 }
             );
 
-            const data = await response.json();
-            console.log('Location Updated:', data);
+            // First read the response as text
+            const responseText = await response.text();
+
+            // Try to extract JSON from the response (handles PHP errors in output)
+            const jsonStart = responseText.indexOf('{');
+            const jsonEnd = responseText.lastIndexOf('}');
+
+            if (jsonStart === -1 || jsonEnd === -1) {
+                console.error('No JSON found in response:', responseText);
+                throw new Error('Invalid server response format');
+            }
+
+            try {
+                const jsonString = responseText.substring(
+                    jsonStart,
+                    jsonEnd + 1
+                );
+                const data = JSON.parse(jsonString);
+                console.log('Location Updated:', data);
+                return data;
+            } catch (e) {
+                console.error('Failed to parse JSON:', e);
+                throw new Error('Failed to process server response');
+            }
         } catch (error) {
             console.error('Error updating location:', error);
+            throw error;
         } finally {
             isSendingRequest.current = false;
         }
@@ -147,7 +176,7 @@ const OnlineHome = ({ navigation }) => {
             if (now - lastRideCheckTime.current >= 10000) {
                 searchRideRequests();
             }
-        }, 10000);
+        }, 15000);
     };
 
     const stopRideCheck = () => {
@@ -173,7 +202,10 @@ const OnlineHome = ({ navigation }) => {
                 return;
             }
 
-            const vehicle_id = '126';
+            // Change this to get vehicle_id from AsyncStorage
+            const vehicle_id = await AsyncStorage.getItem(
+                'selected_vehicle_id'
+            );
             if (!vehicle_id) {
                 console.error('Vehicle id missing');
                 return;
@@ -199,7 +231,7 @@ const OnlineHome = ({ navigation }) => {
             );
 
             const data = await response.json();
-            console.log('Ride Search:', data);
+            // console.log('Ride Search:', data);
 
             if (data.status === 'success' && data.data?.pending_ride) {
                 const vehicleSearch = data.data.vehicle_search;
@@ -215,6 +247,7 @@ const OnlineHome = ({ navigation }) => {
                 setRideStatus('found');
                 setPickupCoords(pickup);
                 setDropCoords(drop);
+                setPendingRideId(data.data.pending_ride.pending_id);
                 fetchPickupAddress(pickup);
                 fetchDropAddress(drop);
 
@@ -234,17 +267,17 @@ const OnlineHome = ({ navigation }) => {
     };
 
     const fetchPickupAddress = async (coords) => {
-        console.log(
-            'Fetching pickup address:',
-            coords.latitude,
-            coords.longitude
-        );
+        // console.log(
+        //     'Fetching pickup address:',
+        //     coords.latitude,
+        //     coords.longitude
+        // );
         try {
             const response = await fetch(
                 `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coords.latitude},${coords.longitude}&key=${GOOGLE_DIRECTIONS_API_KEY}`
             );
             const data = await response.json();
-            console.log('Pickup Address Data:', data);
+            // console.log('Pickup Address Data:', data);
             if (data.results && data.results[0]) {
                 const compoundCode = data.plus_code.compound_code;
                 const address = compoundCode.substring(
@@ -258,7 +291,7 @@ const OnlineHome = ({ navigation }) => {
     };
 
     const fetchDropAddress = async (coords) => {
-        console.log('Drop Coords:', coords.latitude, coords.longitude);
+        // console.log('Drop Coords:', coords.latitude, coords.longitude);
         try {
             const response = await fetch(
                 `https://maps.googleapis.com/maps/api/geocode/json?latlng=${coords.latitude},${coords.longitude}&key=${GOOGLE_DIRECTIONS_API_KEY}`
@@ -288,6 +321,7 @@ const OnlineHome = ({ navigation }) => {
                 const distanceInKm = parseFloat(
                     data.routes[0].legs[0].distance.text.replace(/[^\d.]/g, '')
                 );
+                setRouteDuration(data.routes[0].legs[0].duration.text);
                 setRoutePrice((distanceInKm * 50).toFixed(2));
             }
         } catch (error) {
@@ -295,11 +329,76 @@ const OnlineHome = ({ navigation }) => {
         }
     };
 
-    const calculatePrice = (distanceMeters) => {
-        const baseFare = 100; // LKR
-        const perKmRate = 50; // LKR
-        const distanceKm = distanceMeters / 1000;
-        return `LKR ${(baseFare + distanceKm * perKmRate).toFixed(2)}`;
+    const fetchApproveRide = async () => {
+        try {
+            const vehicle_id = await AsyncStorage.getItem(
+                'selected_vehicle_id'
+            );
+            const login_token = await AsyncStorage.getItem('login_token');
+
+            const approveData = {
+                function: 'ApproveRide',
+                data: {
+                    login_token: login_token,
+                    vehicle_id: vehicle_id,
+                    distance: routeDistance,
+                    duration: routeDuration,
+                    price: routePrice,
+                },
+            };
+
+            const response = await fetch(
+                'http://ryde100.introps.com/App_apiv2/app_api',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(approveData),
+                }
+            );
+
+            const data = await response.json();
+            // console.log('Approve Response : ', data);
+
+            if (data && data.status === 'success') {
+                const rideId = data.ride_id;
+                setApprovedRideId(rideId);
+            }
+        } catch (error) {}
+    };
+
+    const fetchRejectRide = async () => {
+        try {
+            const pending_ride_id = pendingRideId;
+            const login_token = await AsyncStorage.getItem('login_token');
+
+            const rejectData = {
+                function: 'RejectRide',
+                data: {
+                    login_token: login_token,
+                    pending_ride_id: pending_ride_id,
+                },
+            };
+
+            const response = await fetch(
+                'http://ryde100.introps.com/App_apiv2/app_api',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(rejectData),
+                }
+            );
+
+            const data = await response.json();
+            // console.log('Reject Response : ', data);
+
+            if (data && data.status === 'success') {
+                setRideStatus('looking');
+            }
+        } catch (error) {}
     };
 
     const getLocation = async () => {
@@ -344,6 +443,7 @@ const OnlineHome = ({ navigation }) => {
 
     const handleReject = () => {
         setRideStatus('searching');
+        fetchRejectRide();
         setTimeout(() => {
             setRideStatus('looking');
             startBlinking();
@@ -351,7 +451,11 @@ const OnlineHome = ({ navigation }) => {
     };
 
     const handleAccept = () => {
+        setRideStatus('accepted');
+        fetchApproveRide();
+        stopRideCheck();
         setTripStarted(true);
+        // console.log('==========> Ride Approved! <===========');
     };
 
     const handleToggleOnline = async (value) => {
@@ -459,9 +563,13 @@ const OnlineHome = ({ navigation }) => {
                         </Animated.Text>
                     )}
 
-                    {rideStatus === 'found' && (
+                    {(rideStatus === 'found' || rideStatus === 'accepted') && (
                         <View style={styles.rideCard}>
-                            <Text style={styles.rideTitle}>Ride Found</Text>
+                            <Text style={styles.rideTitle}>
+                                {rideStatus === 'accepted'
+                                    ? 'Ride Accepted'
+                                    : 'Ride Found'}
+                            </Text>
                             <View style={styles.rideRow}>
                                 <Ionicons
                                     name="location-outline"
@@ -506,7 +614,7 @@ const OnlineHome = ({ navigation }) => {
                             </View>
 
                             <View style={styles.buttonContainer}>
-                                {!tripStarted ? (
+                                {rideStatus === 'found' ? (
                                     <>
                                         <TouchableOpacity
                                             style={styles.acceptButton}
@@ -528,6 +636,9 @@ const OnlineHome = ({ navigation }) => {
                                 ) : (
                                     <TouchableOpacity
                                         style={styles.startTripButton}
+                                        onPress={() =>
+                                            console.log('Start Trip pressed')
+                                        }
                                     >
                                         <Text style={styles.buttonText}>
                                             Start Trip
@@ -547,8 +658,9 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#f5f5f5' },
     header: {
         backgroundColor: '#FFC107',
-        padding: 20,
-        paddingTop: 40,
+        paddingVertical: '5%',
+        paddingHorizontal: '5%',
+        paddingTop: '10%',
         borderBottomRightRadius: 50,
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -567,8 +679,8 @@ const styles = StyleSheet.create({
     map: { width: '100%', height: '100%' },
     bottomContainer: {
         backgroundColor: '#fff',
-        padding: 20,
-        height: 220,
+        padding: '5%',
+        height: '30%',
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -578,44 +690,72 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontWeight: 'bold',
         color: '#333',
-        marginBottom: 5,
+        marginBottom: '2%',
     },
-    rideRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },
-    rideText: { fontSize: 16, color: '#555', marginLeft: 10 },
+    rideRow: { flexDirection: 'row', alignItems: 'center', marginBottom: '2%' },
+    rideText: { fontSize: 16, color: '#555', marginLeft: '2%' },
     priceText: { color: '#1f1f1f', fontWeight: 'bold', fontSize: 24 },
     buttonContainer: {
         flexDirection: 'row',
-        marginTop: 15,
-        gap: 5,
-        justifyContent: 'center',
+        marginTop: '5%',
+        gap: '2%',
+        justifyContent: 'space-between',
         alignItems: 'center',
         flexWrap: 'wrap',
+        width: '100%',
     },
     acceptButton: {
         backgroundColor: '#FFC107',
-        padding: 12,
+        paddingVertical: '4%',
+        paddingHorizontal: '5%',
         borderRadius: 8,
-        minWidth: 180,
+        minWidth: '55%',
         alignItems: 'center',
-        margin: 5, // Added margin for spacing
+        margin: '2%',
     },
     rejectButton: {
         backgroundColor: '#1f1f1f',
-        padding: 12,
+        paddingVertical: '4%',
+        paddingHorizontal: '5%',
         borderRadius: 8,
-        minWidth: 115,
+        minWidth: '35%',
         alignItems: 'center',
-        margin: 5, // Added margin for spacing
+        margin: '2%',
     },
     startTripButton: {
         backgroundColor: '#FFC107',
-        padding: 12,
+        paddingVertical: '3%',
+        paddingHorizontal: '5%',
         borderRadius: 8,
-        minWidth: '100%',
+        minWidth: '90%',
         alignItems: 'center',
-        marginTop: 10, // Added margin for spacing
+        marginTop: '5%',
     },
     buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+    dropdownContainer: {
+        marginBottom: 20,
+    },
+    dropdownLabel: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        marginBottom: 5,
+    },
+    dropdown: {
+        height: 50,
+        borderWidth: 1,
+        borderColor: '#ccc',
+        borderRadius: 5,
+    },
+    selectedVehicleContainer: {
+        marginTop: 20,
+        padding: 10,
+        backgroundColor: '#f0f0f0',
+        borderRadius: 5,
+    },
+    selectedVehicleText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
 });
 
 export default OnlineHome;
