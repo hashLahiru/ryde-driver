@@ -60,32 +60,68 @@ export default function App() {
             >
                 {/* Splash and Onboarding Screens */}
                 <Stack.Screen name="Splash" component={SplashScreen} />
-                <Stack.Screen name="Onboarding1" component={OnboardingScreen1} />
-                <Stack.Screen name="Onboarding2" component={OnboardingScreen2} />
+                <Stack.Screen
+                    name="Onboarding1"
+                    component={OnboardingScreen1}
+                />
+                <Stack.Screen
+                    name="Onboarding2"
+                    component={OnboardingScreen2}
+                />
 
                 {/* Authentication Screens */}
                 <Stack.Screen name="SignIn" component={SignInScreen} />
-                <Stack.Screen name="VerifyMobile" component={VerifyMobileScreen} />
+                <Stack.Screen
+                    name="VerifyMobile"
+                    component={VerifyMobileScreen}
+                />
                 <Stack.Screen name="Register" component={RegisterScreen} />
                 <Stack.Screen name="LoginOtp" component={LoginOtpScreen} />
 
                 {/* Main App Screens */}
                 <Stack.Screen name="Home" component={HomeScreen} />
-                <Stack.Screen name="UploadScreen" component={DriverDetailsScreen} />
+                <Stack.Screen
+                    name="UploadScreen"
+                    component={DriverDetailsScreen}
+                />
                 <Stack.Screen name="MapScreen" component={MapScreen} />
                 <Stack.Screen name="OnlineHome" component={OnlineHome} />
 
                 {/* Side Menu Screens */}
                 <Stack.Screen name="UserScreen" component={UserScreen} />
-                <Stack.Screen name="NotificationsScreen" component={NotificationsScreen} />
-                <Stack.Screen name="PaymentsScreen" component={PaymentsScreen} />
+                <Stack.Screen
+                    name="NotificationsScreen"
+                    component={NotificationsScreen}
+                />
+                <Stack.Screen
+                    name="PaymentsScreen"
+                    component={PaymentsScreen}
+                />
                 <Stack.Screen name="HistoryScreen" component={HistoryScreen} />
                 <Stack.Screen name="SupportScreen" component={SupportScreen} />
                 <Stack.Screen name="DriverScreen" component={DriverScreen} />
-                <Stack.Screen name="PersonalDetailsScreen" component={PersonalDetailsScreen} />
-                <Stack.Screen name="LicenseDocumentsScreen" component={LicenseDocumentsScreen} />
-                <Stack.Screen name="VehicleDetailsScreen" component={VehicleDetailsScreen} />
-                <Stack.Screen name="SingleTripViewScreen" component={SingleTripViewScreen} />
+                <Stack.Screen
+                    name="PersonalDetailsScreen"
+                    component={PersonalDetailsScreen}
+                />
+                <Stack.Screen
+                    name="LicenseDocumentsScreen"
+                    component={LicenseDocumentsScreen}
+                />
+                <Stack.Screen
+                    name="VehicleDetailsScreen"
+                    component={VehicleDetailsScreen}
+                />
+                <Stack.Screen
+                    name="SingleTripViewScreen"
+                    component={SingleTripViewScreen}
+                />
+                <Stack.Screen
+                    name="TicketingScreen"
+                    component={TicketingScreen}
+                />
+
+                {/* Add more screens as needed */}
             </Stack.Navigator>
         </NavigationContainer>
     );

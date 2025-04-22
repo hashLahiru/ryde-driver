@@ -46,7 +46,7 @@ export default function LoginOtpScreen({ navigation }) {
                 };
 
                 const response = await fetch(
-                    'http://ryde100.introps.com/App_apiv2/app_api',
+                    'http://ryde100.introps.com/Auth/app_api',
                     {
                         method: 'POST',
                         headers: {

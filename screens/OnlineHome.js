@@ -7,6 +7,8 @@ import {
     TouchableOpacity,
     Animated,
     Easing,
+    Modal,
+    ActivityIndicator,
 } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import MapViewDirections from 'react-native-maps-directions';
@@ -35,6 +37,13 @@ const OnlineHome = ({ navigation }) => {
     const [routeDuration, setRouteDuration] = useState('Calculating...');
     const [approvedRideId, setApprovedRideId] = useState('');
     const [pendingRideId, setPendingRideId] = useState('');
+    const [startStripButtonText, setStartStripButtonText] =
+        useState('Start Trip');
+    const [startTripButtonStyle, setStartTripButtonStyle] = useState(
+        styles.startTripButton
+    );
+    const [showSummaryModal, setShowSummaryModal] = useState(false);
+    const [rideSummary, setRideSummary] = useState(null);
 
     const locationInterval = useRef(null);
     const rideCheckInterval = useRef(null);
@@ -52,6 +61,7 @@ const OnlineHome = ({ navigation }) => {
         return () => {
             stopLocationUpdates();
             stopRideCheck();
+            blinkAnim.stopAnimation(); // Stop the blinking animation
         };
     }, []);
 
@@ -124,7 +134,7 @@ const OnlineHome = ({ navigation }) => {
             };
 
             const response = await fetch(
-                'http://ryde100.introps.com/App_apiv2/app_api',
+                'http://ryde100.introps.com/DriverVehicle/app_api',
                 {
                     method: 'POST',
                     headers: {
@@ -220,7 +230,7 @@ const OnlineHome = ({ navigation }) => {
             };
 
             const response = await fetch(
-                'http://ryde100.introps.com/App_apiv2/app_api',
+                'http://ryde100.introps.com/DriverRide/app_api',
                 {
                     method: 'POST',
                     headers: {
@@ -348,7 +358,7 @@ const OnlineHome = ({ navigation }) => {
             };
 
             const response = await fetch(
-                'http://ryde100.introps.com/App_apiv2/app_api',
+                'http://ryde100.introps.com/DriverRide/app_api',
                 {
                     method: 'POST',
                     headers: {
@@ -359,7 +369,7 @@ const OnlineHome = ({ navigation }) => {
             );
 
             const data = await response.json();
-            // console.log('Approve Response : ', data);
+            console.log('Approved Ride ID : ', data.ride_id);
 
             if (data && data.status === 'success') {
                 const rideId = data.ride_id;
@@ -382,7 +392,7 @@ const OnlineHome = ({ navigation }) => {
             };
 
             const response = await fetch(
-                'http://ryde100.introps.com/App_apiv2/app_api',
+                'http://ryde100.introps.com/DriverRide/app_api',
                 {
                     method: 'POST',
                     headers: {
@@ -399,6 +409,105 @@ const OnlineHome = ({ navigation }) => {
                 setRideStatus('looking');
             }
         } catch (error) {}
+    };
+
+    const fetchStartRide = async () => {
+        try {
+            const login_token = await AsyncStorage.getItem('login_token');
+            if (!login_token) {
+                console.error('Login token missing');
+                return;
+            }
+
+            const location = await Location.getCurrentPositionAsync({});
+            if (!location) {
+                console.error('Failed to get location');
+                return;
+            }
+
+            const ride_id = approvedRideId;
+
+            const startRideData = {
+                function: 'StartRide',
+                data: {
+                    login_token: login_token,
+                    trip_id: ride_id,
+                    start_point_lat: location.coords.latitude.toString(),
+                    start_point_long: location.coords.longitude.toString(),
+                },
+            };
+
+            const response = await fetch(
+                'http://ryde100.introps.com/DriverRide/app_api',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(startRideData),
+                }
+            );
+
+            const data = await response.json();
+            console.log('Start Ride Response:', data);
+        } catch (error) {
+            console.error('Error starting ride:', error);
+        }
+    };
+
+    const fetchEndRide = async () => {
+        try {
+            const login_token = await AsyncStorage.getItem('login_token');
+            if (!login_token) {
+                console.error('Login token missing');
+                return;
+            }
+
+            const location = await Location.getCurrentPositionAsync({});
+            if (!location) {
+                console.error('Failed to get location');
+                return;
+            }
+
+            const ride_id = approvedRideId;
+
+            const endRideData = {
+                function: 'EndRide',
+                data: {
+                    login_token: login_token,
+                    trip_id: ride_id,
+                    end_point_lat: location.coords.latitude.toString(),
+                    end_point_long: location.coords.longitude.toString(),
+                },
+            };
+
+            const response = await fetch(
+                'http://ryde100.introps.com/EndRide/app_api',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(endRideData),
+                }
+            );
+
+            const data = await response.json();
+            console.log('End Ride Response:', data);
+
+            if (data.status === 'success') {
+                // Extract summary data from response
+                const summary = {
+                    distance: data.data.distance,
+                    duration: data.data.trip_duration,
+                    price: data.data.price,
+                };
+                setRideSummary(summary);
+                setShowSummaryModal(true);
+            }
+        } catch (error) {
+            console.error('Error ending ride', error);
+        }
     };
 
     const getLocation = async () => {
@@ -422,6 +531,7 @@ const OnlineHome = ({ navigation }) => {
     };
 
     const startBlinking = () => {
+        blinkAnim.setValue(0); // Reset animation value
         Animated.loop(
             Animated.sequence([
                 Animated.timing(blinkAnim, {
@@ -436,8 +546,7 @@ const OnlineHome = ({ navigation }) => {
                     easing: Easing.linear,
                     useNativeDriver: true,
                 }),
-            ]),
-            { iterations: 6 }
+            ])
         ).start();
     };
 
@@ -455,7 +564,6 @@ const OnlineHome = ({ navigation }) => {
         fetchApproveRide();
         stopRideCheck();
         setTripStarted(true);
-        // console.log('==========> Ride Approved! <===========');
     };
 
     const handleToggleOnline = async (value) => {
@@ -552,17 +660,23 @@ const OnlineHome = ({ navigation }) => {
             {/* Bottom Container */}
             {isOnline && (
                 <View style={styles.bottomContainer}>
-                    {rideStatus === 'looking' && (
-                        <Animated.Text
-                            style={[
-                                styles.blinkingText,
-                                { opacity: blinkAnim },
-                            ]}
-                        >
-                            Looking for Rides...
-                        </Animated.Text>
+                    {/* Show "Looking for Rides..." only when status is 'looking' or 'searching' */}
+                    {(rideStatus === 'looking' ||
+                        rideStatus === 'searching') && (
+                        <View style={styles.loadingContainer}>
+                            <ActivityIndicator size="large" color="#1f1f1f" />
+                            <Animated.Text
+                                style={[
+                                    styles.blinkingText,
+                                    { opacity: blinkAnim, marginTop: 10 },
+                                ]}
+                            >
+                                Looking for Rides...
+                            </Animated.Text>
+                        </View>
                     )}
 
+                    {/* Show ride details when ride is found or accepted */}
                     {(rideStatus === 'found' || rideStatus === 'accepted') && (
                         <View style={styles.rideCard}>
                             <Text style={styles.rideTitle}>
@@ -635,13 +749,26 @@ const OnlineHome = ({ navigation }) => {
                                     </>
                                 ) : (
                                     <TouchableOpacity
-                                        style={styles.startTripButton}
-                                        onPress={() =>
-                                            console.log('Start Trip pressed')
-                                        }
+                                        style={startTripButtonStyle}
+                                        onPress={() => {
+                                            if (
+                                                startStripButtonText ===
+                                                'Start Trip'
+                                            ) {
+                                                fetchStartRide();
+                                                setStartStripButtonText(
+                                                    'End Trip'
+                                                );
+                                                setStartTripButtonStyle(
+                                                    styles.endTripButton
+                                                );
+                                            } else {
+                                                fetchEndRide();
+                                            }
+                                        }}
                                     >
                                         <Text style={styles.buttonText}>
-                                            Start Trip
+                                            {startStripButtonText}
                                         </Text>
                                     </TouchableOpacity>
                                 )}
@@ -649,6 +776,68 @@ const OnlineHome = ({ navigation }) => {
                         </View>
                     )}
                 </View>
+            )}
+
+            {showSummaryModal && (
+                <Modal
+                    animationType="slide"
+                    transparent={true}
+                    visible={showSummaryModal}
+                    onRequestClose={() => setShowSummaryModal(false)}
+                >
+                    <View style={styles.modalContainer}>
+                        <View style={styles.modalContent}>
+                            <Text style={styles.modalTitle}>Ride Summary</Text>
+
+                            {rideSummary && (
+                                <>
+                                    <View style={styles.summaryRow}>
+                                        <Text style={styles.summaryLabel}>
+                                            Distance:
+                                        </Text>
+                                        <Text style={styles.summaryValue}>
+                                            {rideSummary.distance} km
+                                        </Text>
+                                    </View>
+                                    <View style={styles.summaryRow}>
+                                        <Text style={styles.summaryLabel}>
+                                            Duration:
+                                        </Text>
+                                        <Text style={styles.summaryValue}>
+                                            {rideSummary.duration} mins
+                                        </Text>
+                                    </View>
+                                    <View style={styles.summaryRow}>
+                                        <Text style={styles.summaryLabel}>
+                                            Price:
+                                        </Text>
+                                        <Text style={styles.summaryValue}>
+                                            LKR {rideSummary.price}
+                                        </Text>
+                                    </View>
+                                </>
+                            )}
+
+                            <TouchableOpacity
+                                style={styles.closeButton}
+                                onPress={() => {
+                                    setShowSummaryModal(false);
+                                    setRideStatus('looking');
+                                    setTripStarted(false);
+                                    setStartStripButtonText('Start Trip');
+                                    setStartTripButtonStyle(
+                                        styles.startTripButton
+                                    );
+                                    startRideCheck();
+                                }}
+                            >
+                                <Text style={styles.closeButtonText}>
+                                    Close
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </Modal>
             )}
         </View>
     );
@@ -755,6 +944,62 @@ const styles = StyleSheet.create({
     selectedVehicleText: {
         fontSize: 16,
         fontWeight: 'bold',
+    },
+    modalContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    modalContent: {
+        backgroundColor: 'white',
+        padding: 20,
+        borderRadius: 10,
+        width: '80%',
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        marginBottom: 20,
+        textAlign: 'center',
+    },
+    summaryRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 15,
+    },
+    summaryLabel: {
+        fontSize: 16,
+        color: '#555',
+    },
+    summaryValue: {
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    closeButton: {
+        backgroundColor: '#1f1f1f',
+        padding: 10,
+        borderRadius: 5,
+        marginTop: 20,
+    },
+    closeButtonText: {
+        color: 'white',
+        textAlign: 'center',
+        fontWeight: 'bold',
+    },
+    endTripButton: {
+        backgroundColor: '#1f1f1f',
+        paddingVertical: '3%',
+        paddingHorizontal: '5%',
+        borderRadius: 8,
+        minWidth: '90%',
+        alignItems: 'center',
+        marginTop: '5%',
+    },
+    loadingContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 20, // space between loading and ride card
     },
 });
 
