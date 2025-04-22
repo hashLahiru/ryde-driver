@@ -9,7 +9,6 @@ import {
     Modal,
     Alert,
     Switch,
-    Platform,
     FlatList,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
@@ -24,14 +23,26 @@ const HomeScreen = ({ navigation }) => {
     const [vehicles, setVehicles] = useState([]);
     const [selectedVehicle, setSelectedVehicle] = useState('');
     const locationInterval = useRef(null);
-
-    const [showIosPicker, setShowIosPicker] = useState(false);
     const [showVehicleSelector, setShowVehicleSelector] = useState(false);
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
 
     useEffect(() => {
         const fetchDataAndCheckStatus = async () => {
+            const login_token = await AsyncStorage.getItem('login_token');
+
+            if (!login_token) {
+                console.warn(
+                    'No login token found. Redirecting to Onboarding2...'
+                );
+                navigation.reset({
+                    index: 0,
+                    routes: [{ name: 'Onboarding2' }],
+                });
+                return;
+            }
+
             await fetchVehicleData();
-            // await AsyncStorage.removeItem('login_token');
+
             if (isOnline) {
                 // startLocationUpdates();
                 navigation.navigate('OnlineHome');
@@ -61,7 +72,7 @@ const HomeScreen = ({ navigation }) => {
 
         try {
             const response = await fetch(
-                'http://ryde100.introps.com/App_apiv2/app_api',
+                'http://ryde100.introps.com/DriverVehicle/app_api',
                 {
                     method: 'POST',
                     headers: {
@@ -145,7 +156,6 @@ const HomeScreen = ({ navigation }) => {
 
     const sendLocationUpdate = async (status) => {
         try {
-            // 1. Validate required data
             const login_token = await AsyncStorage.getItem('login_token');
             const vehicle_id = await AsyncStorage.getItem(
                 'selected_vehicle_id'
@@ -155,7 +165,6 @@ const HomeScreen = ({ navigation }) => {
                 throw new Error('Missing required credentials');
             }
 
-            // 2. Get location
             const { status: permissionStatus } =
                 await Location.requestForegroundPermissionsAsync();
             if (permissionStatus !== 'granted') {
@@ -167,7 +176,6 @@ const HomeScreen = ({ navigation }) => {
                 throw new Error('Failed to get location');
             }
 
-            // 3. Prepare request
             const requestData = {
                 function: 'UpdateVehicleLocation',
                 data: {
@@ -179,9 +187,8 @@ const HomeScreen = ({ navigation }) => {
                 },
             };
 
-            // 4. Make the request
             const response = await fetch(
-                'http://ryde100.introps.com/App_apiv2/app_api',
+                'http://ryde100.introps.com/DriverVehicle/app_api',
                 {
                     method: 'POST',
                     headers: {
@@ -192,10 +199,8 @@ const HomeScreen = ({ navigation }) => {
                 }
             );
 
-            // 5. Handle the problematic response
             const rawResponse = await response.text();
 
-            // Extract JSON from the response (handles PHP errors in output)
             const jsonStart = rawResponse.indexOf('{');
             const jsonEnd = rawResponse.lastIndexOf('}');
 
@@ -223,7 +228,7 @@ const HomeScreen = ({ navigation }) => {
             }
         } catch (error) {
             console.error('Error in sendLocationUpdate:', error.message);
-            throw error; // Re-throw for calling code to handle
+            throw error;
         }
     };
 
@@ -235,10 +240,13 @@ const HomeScreen = ({ navigation }) => {
         setSideMenuVisible(false);
         switch (item) {
             case 'Dashboard':
+                navigation.navigate('Home');
+                break;
+            case 'Tickets':
                 navigation.navigate('TicketingScreen');
                 break;
             case 'Earnings':
-                navigation.navigate('EarningsScreen');
+                navigation.navigate('PaymentsScreen');
                 break;
             case 'History':
                 navigation.navigate('HistoryScreen');
@@ -250,7 +258,7 @@ const HomeScreen = ({ navigation }) => {
                 navigation.navigate('SupportScreen');
                 break;
             case 'Logout':
-                Alert.alert('Logged out');
+                setShowLogoutModal(true);
                 break;
             default:
                 break;
@@ -313,6 +321,7 @@ const HomeScreen = ({ navigation }) => {
                     <View style={styles.menuItemsContainer}>
                         {[
                             'Dashboard',
+                            'Tickets',
                             'Earnings',
                             'History',
                             'Profile',
@@ -443,26 +452,30 @@ const HomeScreen = ({ navigation }) => {
                 </View>
 
                 {/* Driver Stats */}
+                <Text style={styles.statTitle}>Today Stats</Text>
                 <View style={styles.statsContainer}>
-                    <TouchableOpacity
-                        style={styles.statCard}
-                        onPress={() => navigation.navigate('OnlineHome')}
-                    >
-                        <Text style={styles.statValue}>5</Text>
-                        <Text style={styles.statLabel}>Active Rides</Text>
-                    </TouchableOpacity>
                     <View style={styles.statCard}>
-                        <Text style={styles.statValue}>$120</Text>
-                        <Text style={styles.statLabel}>Today Earnings</Text>
+                        <View style={styles.statValueContainer}>
+                            <Text style={styles.statValue}>5</Text>
+                        </View>
+                        <Text style={styles.statLabel}>Rides</Text>
                     </View>
                     <View style={styles.statCard}>
-                        <Text style={styles.statValue}>4.8</Text>
+                        <View style={styles.statValueContainer}>
+                            <Text style={styles.statValue}>$1200</Text>
+                        </View>
+                        <Text style={styles.statLabel}>Earned</Text>
+                    </View>
+                    <View style={styles.statCard}>
+                        <View style={styles.statValueContainer}>
+                            <Text style={styles.statValue}>4.8</Text>
+                        </View>
                         <Text style={styles.statLabel}>Rating</Text>
                     </View>
                 </View>
 
                 {/* Current Ride */}
-                <Text style={styles.sectionTitle}>Current Ride</Text>
+                <Text style={styles.sectionTitle}>Last Ride</Text>
                 <TouchableOpacity
                     style={styles.currentRideCard}
                     onPress={() => navigation.navigate('SingleTripViewScreen')}
@@ -501,6 +514,51 @@ const HomeScreen = ({ navigation }) => {
                     <Text style={styles.supportText}>Contact Support</Text>
                 </TouchableOpacity>
             </ScrollView>
+
+            <Modal
+                visible={showLogoutModal}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setShowLogoutModal(false)}
+            >
+                <View style={styles.modalBackground}>
+                    <View style={styles.modalContainer}>
+                        <Text style={styles.modalText}>
+                            Are you sure you want to logout?
+                        </Text>
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity
+                                style={[
+                                    styles.modalButton,
+                                    { backgroundColor: '#ccc' },
+                                ]}
+                                onPress={() => setShowLogoutModal(false)}
+                            >
+                                <Text style={{ fontSize: '16' }}>No</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[
+                                    styles.modalButton,
+                                    { backgroundColor: '#f33' },
+                                ]}
+                                onPress={async () => {
+                                    setShowLogoutModal(false);
+                                    await AsyncStorage.removeItem(
+                                        'login_token'
+                                    );
+                                    navigation.replace('Onboarding2'); // or navigation.navigate
+                                }}
+                            >
+                                <Text
+                                    style={{ color: 'white', fontSize: '16' }}
+                                >
+                                    Yes
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 };
@@ -592,15 +650,20 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         marginBottom: height * 0.02,
-        marginTop: height * 0.03,
     },
     statCard: {
         flex: 1,
         alignItems: 'center',
+        justifyContent: 'space-between',
         backgroundColor: '#999999',
         borderRadius: width * 0.025,
-        padding: width * 0.04,
+        padding: width * 0.03,
         marginHorizontal: width * 0.01,
+        marginTop: height * 0.01,
+    },
+    statValueContainer: {
+        flex: 1,
+        justifyContent: 'center',
     },
     statValue: {
         fontSize: width * 0.05,
@@ -610,7 +673,14 @@ const styles = StyleSheet.create({
     statLabel: {
         fontSize: width * 0.035,
         color: '#fff',
+        marginTop: height * 0.01,
     },
+    statTitle: {
+        fontSize: width * 0.045,
+        fontWeight: 'bold',
+        marginTop: height * 0.02,
+    },
+
     sectionTitle: {
         fontSize: width * 0.045,
         fontWeight: 'bold',
@@ -666,7 +736,7 @@ const styles = StyleSheet.create({
         marginLeft: width * 0.025,
     },
     dropdownContainer: {
-        marginBottom: 20,
+        marginBottom: 0,
     },
     dropdownLabel: {
         fontSize: 16,
@@ -785,6 +855,37 @@ const styles = StyleSheet.create({
     cancelButtonText: {
         color: '#007AFF',
         fontSize: 16,
+    },
+
+    modalBackground: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalContainer: {
+        backgroundColor: 'white',
+        padding: 20,
+        borderRadius: 10,
+        width: '80%',
+        alignItems: 'center',
+    },
+    modalText: {
+        fontSize: 16,
+        marginBottom: 20,
+        textAlign: 'center',
+    },
+    modalButtons: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        width: '100%',
+    },
+    modalButton: {
+        flex: 1,
+        padding: 10,
+        marginHorizontal: 10,
+        borderRadius: 5,
+        alignItems: 'center',
     },
 });
 

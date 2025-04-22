@@ -41,7 +41,7 @@ export default function SignInScreen({ navigation }) {
     const sendOtp = async (phone) => {
         try {
             const response = await fetch(
-                'http://ryde100.introps.com/App_apiv2/app_api',
+                'http://ryde100.introps.com/Auth/app_api',
                 {
                     method: 'POST',
                     headers: {
@@ -77,7 +77,6 @@ export default function SignInScreen({ navigation }) {
     const handlePhoneSubmit = () => {
         if (phoneNumber && selectedCountryCode) {
             const fullPhoneNumber = `${selectedCountryCode}${phoneNumber}`;
-            console.log('Full Phone Number:', fullPhoneNumber);
             sendOtp(fullPhoneNumber);
         } else {
             alert('Please enter a valid phone number.');
@@ -87,7 +86,7 @@ export default function SignInScreen({ navigation }) {
     const handleModalClose = () => {
         setModalVisible(false);
         if (modalMessage.includes('OTP has been sent')) {
-            navigation.navigate('LoginOtp', { phoneNumber: otpPhone });
+            navigation.navigate('LoginOtp', { phoneNumber: fullPhoneNumber });
         }
     };
 

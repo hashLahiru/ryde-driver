@@ -62,7 +62,7 @@ export default function RegisterScreen({ navigation }) {
             };
 
             const response = await fetch(
-                'http://ryde100.introps.com/app_apiv2/app_api',
+                'http://ryde100.introps.com/Driver/app_api',
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
