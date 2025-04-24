@@ -12,6 +12,7 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const TicketingScreen = ({ navigation }) => {
     const [selectedIssueType, setSelectedIssueType] = useState('sales');
@@ -34,6 +35,8 @@ const TicketingScreen = ({ navigation }) => {
     }, []);
 
     const handleSubmit = async () => {
+        const login_token = await AsyncStorage.getItem('login_token');
+
         if (!note.trim()) {
             setModalMessage('Please describe your issue');
             setModalVisible(true);
@@ -48,12 +51,11 @@ const TicketingScreen = ({ navigation }) => {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        Cookie: 'ci_session=8q86rnr0j74uam45ug3vkul7bmv07756; ci_session=jnl35h2nvp4s22elo3p9rqu5221tb1h1',
                     },
                     body: JSON.stringify({
                         function: 'SubmitIssue',
                         data: {
-                            login_token: 'a36794049e76cb136e09e723e5431baf',
+                            login_token: login_token,
                             issue_type: selectedIssueType,
                             issue_note: note,
                         },
@@ -86,6 +88,8 @@ const TicketingScreen = ({ navigation }) => {
     };
 
     const fetchIssues = async () => {
+        const login_token = await AsyncStorage.getItem('login_token');
+
         setIsFetching(true);
         try {
             const response = await fetch(
@@ -94,12 +98,11 @@ const TicketingScreen = ({ navigation }) => {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        Cookie: 'ci_session=8q86rnr0j74uam45ug3vkul7bmv07756; ci_session=7da99dnhfb7npupd053oqtnoof579tvm; ci_session=jnl35h2nvp4s22elo3p9rqu5221tb1h1',
                     },
                     body: JSON.stringify({
                         function: 'GetIssueList',
                         data: {
-                            login_token: 'a36794049e76cb136e09e723e5431baf',
+                            login_token: login_token,
                         },
                     }),
                 }
@@ -107,7 +110,6 @@ const TicketingScreen = ({ navigation }) => {
 
             const result = await response.json();
             if (result.status === 'success') {
-                // Format the issues data to match our display
                 const formattedIssues = result.data.map((issue) => ({
                     id: issue.issue_id,
                     dateTime: formatDateTime(issue.created_at),
