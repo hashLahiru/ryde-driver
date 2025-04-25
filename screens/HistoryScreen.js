@@ -31,7 +31,6 @@ const HistoryScreen = () => {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        Cookie: 'ci_session=8q86rnr0j74uam45ug3vkul7bmv07756; ci_session=7da99dnhfb7npupd053oqtnoof579tvm; ci_session=44jn7j17mcdjl7b14cdbe0ke6s98kla4',
                     },
                     body: JSON.stringify({
                         function: 'GetRideHistory',
