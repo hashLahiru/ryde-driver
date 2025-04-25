@@ -25,6 +25,9 @@ const HomeScreen = ({ navigation }) => {
     const locationInterval = useRef(null);
     const [showVehicleSelector, setShowVehicleSelector] = useState(false);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
+    const [homeSummary, setHomeSummary] = useState(null);
+    const [lastPickupPoint, setLastPickupPoint] = useState('');
+    const [lastDropPoint, setLastDropPoint] = useState('');
 
     useEffect(() => {
         const fetchDataAndCheckStatus = async () => {
@@ -51,10 +54,74 @@ const HomeScreen = ({ navigation }) => {
             }
         };
 
+        fetchHomeSummary();
         fetchDataAndCheckStatus();
 
         return () => stopLocationUpdates();
     }, [isOnline]);
+
+    const fetchHomeSummary = async () => {
+        const login_token = await AsyncStorage.getItem('login_token');
+        try {
+            const response = await fetch(
+                'http://ryde100.introps.com/Driver/app_api',
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        function: 'GetHomeSummary',
+                        data: {
+                            login_token: login_token,
+                        },
+                    }),
+                }
+            );
+            const homeSummary = await response.json();
+            if (homeSummary.status === 'success') {
+                const lastRide = homeSummary.data.last_ride;
+                if (lastRide) {
+                    const pickupAddress = await getAddressFromCoords(
+                        lastRide.start_point_lat,
+                        lastRide.start_point_long
+                    );
+                    const dropAddress = await getAddressFromCoords(
+                        lastRide.end_point_lat,
+                        lastRide.end_point_long
+                    );
+
+                    setLastPickupPoint(pickupAddress);
+                    setLastDropPoint(dropAddress);
+
+                    console.log('Pickup:', pickupAddress);
+                    console.log('Drop:', dropAddress);
+                }
+                setHomeSummary(homeSummary.data);
+            }
+        } catch (error) {
+            console.error('Error fetching summary', error);
+        }
+    };
+
+    const getAddressFromCoords = async (lat, lng) => {
+        if (!lat || !lng) return 'Location not available';
+
+        try {
+            const response = await fetch(
+                `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=AIzaSyAzjm5FmkJ1AI0MSde4vmoXeJY5lZXlAFY`
+            );
+            const data = await response.json();
+
+            if (data.status === 'OK' && data.results.length > 0) {
+                return data.results[0].formatted_address;
+            }
+            return 'Address not found';
+        } catch (err) {
+            console.error('Error fetching address:', err);
+            return 'Address lookup failed';
+        }
+    };
 
     const fetchVehicleData = async () => {
         const login_token = await AsyncStorage.getItem('login_token');
@@ -456,19 +523,25 @@ const HomeScreen = ({ navigation }) => {
                 <View style={styles.statsContainer}>
                     <View style={styles.statCard}>
                         <View style={styles.statValueContainer}>
-                            <Text style={styles.statValue}>5</Text>
+                            <Text style={styles.statValue}>
+                                {homeSummary?.today_rides ?? '0'}
+                            </Text>
                         </View>
                         <Text style={styles.statLabel}>Rides</Text>
                     </View>
                     <View style={styles.statCard}>
                         <View style={styles.statValueContainer}>
-                            <Text style={styles.statValue}>$1200</Text>
+                            <Text style={styles.statValue}>
+                                {homeSummary?.today_earning ?? '$0'}
+                            </Text>
                         </View>
                         <Text style={styles.statLabel}>Earned</Text>
                     </View>
                     <View style={styles.statCard}>
                         <View style={styles.statValueContainer}>
-                            <Text style={styles.statValue}>4.8</Text>
+                            <Text style={styles.statValue}>
+                                {homeSummary?.today_rating ?? '0'}
+                            </Text>
                         </View>
                         <Text style={styles.statLabel}>Rating</Text>
                     </View>
@@ -480,11 +553,16 @@ const HomeScreen = ({ navigation }) => {
                     style={styles.currentRideCard}
                     onPress={() => navigation.navigate('SingleTripViewScreen')}
                 >
-                    <Text style={styles.rideDetail}>Passenger: John Doe</Text>
                     <Text style={styles.rideDetail}>
-                        Pickup: 123 Main Street
+                        Passenger: {homeSummary?.last_ride.sys_first_name}{' '}
+                        {homeSummary?.last_ride.sys_last_name}
                     </Text>
-                    <Text style={styles.rideDetail}>Dropoff: Central Park</Text>
+                    <Text style={styles.rideDetail}>
+                        Pickup: {lastDropPoint}
+                    </Text>
+                    <Text style={styles.rideDetail}>
+                        Dropoff: {lastPickupPoint}{' '}
+                    </Text>
                     <View style={styles.startRideButton}>
                         <Text style={styles.startRideText}>View Ride</Text>
                     </View>
@@ -494,10 +572,10 @@ const HomeScreen = ({ navigation }) => {
                 <Text style={styles.sectionTitle}>Earnings Summary</Text>
                 <View style={styles.earningsCard}>
                     <Text style={styles.earningsText}>
-                        Weekly Earnings: $560
+                        Weekly Earnings: ${homeSummary?.weekly_earning}
                     </Text>
                     <Text style={styles.earningsText}>
-                        Monthly Earnings: $2400
+                        Monthly Earnings: ${homeSummary?.monthly_earning}
                     </Text>
                 </View>
 
