@@ -482,7 +482,7 @@ const OnlineHome = ({ navigation }) => {
             };
 
             const response = await fetch(
-                'http://ryde100.introps.com/EndRide/app_api',
+                'http://ryde100.introps.com/DriverRide/app_api',
                 {
                     method: 'POST',
                     headers: {
@@ -804,7 +804,8 @@ const OnlineHome = ({ navigation }) => {
                                             Duration:
                                         </Text>
                                         <Text style={styles.summaryValue}>
-                                            {rideSummary.duration} mins
+                                            {rideSummary.duration.toFixed(2)}{' '}
+                                            mins
                                         </Text>
                                     </View>
                                     <View style={styles.summaryRow}>
