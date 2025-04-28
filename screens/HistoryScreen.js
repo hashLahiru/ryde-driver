@@ -152,6 +152,11 @@ const HistoryScreen = () => {
                         <TouchableOpacity
                             key={ride.ride_id}
                             style={styles.historyItem}
+                            onPress={() =>
+                                navigation.navigate('SingleTripViewScreen', {
+                                    ride_id: ride.ride_id,
+                                })
+                            }
                         >
                             <Text style={styles.historyTitle}>
                                 Ride #{rides.length - index}
@@ -196,8 +201,7 @@ const HistoryScreen = () => {
                                         { fontWeight: 'bold' },
                                     ]}
                                 >
-                                    <span>Price:</span>
-                                    Rs. {ride.price}
+                                    Price: Rs. {ride.price}
                                 </Text>
                             </View>
                             <View

@@ -551,7 +551,11 @@ const HomeScreen = ({ navigation }) => {
                 <Text style={styles.sectionTitle}>Last Ride</Text>
                 <TouchableOpacity
                     style={styles.currentRideCard}
-                    onPress={() => navigation.navigate('SingleTripViewScreen')}
+                    onPress={() =>
+                        navigation.navigate('SingleTripViewScreen', {
+                            ride_id: homeSummary?.last_ride.ride_id,
+                        })
+                    }
                 >
                     <Text style={styles.rideDetail}>
                         Passenger: {homeSummary?.last_ride.sys_first_name}{' '}
